@@ -1,0 +1,8 @@
+.env
+*.exe
+*.test
+*.out
+bin/
+tmp/
+.idea/
+.vscode/
