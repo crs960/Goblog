@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type UsersController struct {
+type UsuariosController struct {
 	DB *pgxpool.Pool
 }
 
@@ -25,7 +25,7 @@ type updateUserRequest struct {
 	Senha *string `json:"senha"`
 }
 
-func (h UsersController) Me(c *fiber.Ctx) error {
+func (h UsuariosController) Eu(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 	defer cancel()
 
@@ -49,7 +49,7 @@ func (h UsersController) Me(c *fiber.Ctx) error {
 	return c.JSON(usuario)
 }
 
-func (h UsersController) UpdateMe(c *fiber.Ctx) error {
+func (h UsuariosController) UpdateMe(c *fiber.Ctx) error {
 	var body updateUserRequest
 	if err := c.BodyParser(&body); err != nil {
 		return httpx.BadRequest("json invalido")

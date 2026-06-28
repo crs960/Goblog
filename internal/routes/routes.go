@@ -15,8 +15,8 @@ import (
 
 func Setup(app *fiber.App, db *pgxpool.Pool, cfg config.Config) {
 	authController := controllers.AuthController{DB: db, JWTSecret: cfg.JWTSecret}
-	usersController := controllers.UsersController{DB: db}
-	groupsController := controllers.GroupsController{DB: db}
+	usuariosController := controllers.UsuariosController{DB: db}
+	gruposController := controllers.GruposController{DB: db}
 	postsController := controllers.PostsController{DB: db}
 
 	api := app.Group("/api")
@@ -25,29 +25,29 @@ func Setup(app *fiber.App, db *pgxpool.Pool, cfg config.Config) {
 	})
 
 	authRoutes := api.Group("/auth")
-	authRoutes.Post("/register", authController.Register)
+	authRoutes.Post("/cadastro", authController.Cadastro)
 	authRoutes.Post("/login", authController.Login)
 
 	private := api.Use(middleware.JWT(cfg.JWTSecret))
 
-	private.Get("/users/me", usersController.Me)
-	private.Put("/users/me", usersController.UpdateMe)
+	private.Get("/usuarios/eu", usuariosController.Eu)
+	private.Put("/usuarios/eu", usuariosController.UpdateMe)
 
-	private.Post("/groups", groupsController.Create)
-	private.Get("/groups", groupsController.List)
-	private.Get("/groups/:id", groupsController.Get)
-	private.Post("/groups/:id/join", groupsController.Join)
-	private.Delete("/groups/:id/leave", groupsController.Leave)
-	private.Get("/groups/:id/posts", postsController.ListByGroup)
+	private.Post("/grupo", gruposController.Create)
+	private.Get("/grupo", gruposController.List)
+	private.Get("/grupo/:id", gruposController.Get)
+	private.Post("/grupo/:id/entrar", gruposController.Entrar)
+	private.Delete("/grupo/:id/sair", gruposController.Sair)
+	private.Get("/grupo/:id/post", postsController.ListByGrupo)
 
-	private.Post("/posts", postsController.Create)
-	private.Get("/posts/:id", postsController.Get)
-	private.Put("/posts/:id", postsController.Update)
-	private.Delete("/posts/:id", postsController.Delete)
-	private.Post("/posts/:id/like", postsController.Like)
-	private.Delete("/posts/:id/like", postsController.Unlike)
-	private.Post("/posts/:id/comments", postsController.CreateComment)
-	private.Get("/posts/:id/comments", postsController.ListComments)
+	private.Post("/post", postsController.Create)
+	private.Get("/post/:id", postsController.Get)
+	private.Put("/post/:id", postsController.Update)
+	private.Delete("/post/:id", postsController.Delete)
+	private.Post("/post/:id/like", postsController.Like)
+	private.Delete("/post/:id/like", postsController.Unlike)
+	private.Post("/post/:id/comentarios", postsController.CreateComentario)
+	private.Get("/post/:id/comentarios", postsController.ListComentarios)
 }
 
 func ErrorHandler(c *fiber.Ctx, err error) error {

@@ -17,17 +17,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type GroupsController struct {
+type GruposController struct {
 	DB *pgxpool.Pool
 }
 
-type groupRequest struct {
+type grupoRequest struct {
 	Nome      string  `json:"nome"`
 	Descricao *string `json:"descricao"`
 }
 
-func (h GroupsController) Create(c *fiber.Ctx) error {
-	var body groupRequest
+func (h GruposController) Create(c *fiber.Ctx) error {
+	var body grupoRequest
 	if err := c.BodyParser(&body); err != nil {
 		return httpx.BadRequest("json invalido")
 	}
@@ -78,7 +78,7 @@ func (h GroupsController) Create(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(grupo)
 }
 
-func (h GroupsController) List(c *fiber.Ctx) error {
+func (h GruposController) List(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 	defer cancel()
 
@@ -106,7 +106,7 @@ func (h GroupsController) List(c *fiber.Ctx) error {
 	return c.JSON(grupos)
 }
 
-func (h GroupsController) Get(c *fiber.Ctx) error {
+func (h GruposController) Get(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 	defer cancel()
 
@@ -134,7 +134,7 @@ func (h GroupsController) Get(c *fiber.Ctx) error {
 	return c.JSON(grupo)
 }
 
-func (h GroupsController) Join(c *fiber.Ctx) error {
+func (h GruposController) Entrar(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 	defer cancel()
 
@@ -157,7 +157,7 @@ func (h GroupsController) Join(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h GroupsController) Leave(c *fiber.Ctx) error {
+func (h GruposController) Sair(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 	defer cancel()
 

@@ -12,6 +12,7 @@ import (
 	"goblog/internal/repository"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -32,7 +33,7 @@ type updatePostRequest struct {
 	Conteudo *string `json:"conteudo"`
 }
 
-type commentRequest struct {
+type comentarioRequest struct {
 	Comentario string `json:"comentario"`
 }
 
@@ -72,7 +73,7 @@ func (h PostsController) Create(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(postagem)
 }
 
-func (h PostsController) ListByGroup(c *fiber.Ctx) error {
+func (h PostsController) ListByGrupo(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 	defer cancel()
 
@@ -84,10 +85,10 @@ func (h PostsController) ListByGroup(c *fiber.Ctx) error {
 		return httpx.Forbidden("voce nao participa deste grupo")
 	}
 
-	rows, err := h.DB.Query(ctx, postSelectQuery(`
-		WHERE p.grupo_id = $1
-		ORDER BY p.criado_em DESC
-	`), c.Params("id"), middleware.UserID(c))
+	rows, err := h.DB.Query(ctx, postSelectQuery(
+		"WHERE p.grupo_id = $1",
+		"ORDER BY p.criado_em DESC",
+	), c.Params("id"), middleware.UserID(c))
 	if err != nil {
 		return err
 	}
@@ -118,9 +119,7 @@ func (h PostsController) Get(c *fiber.Ctx) error {
 	}
 
 	var postagem models.Postagem
-	err = h.DB.QueryRow(ctx, postSelectQuery(`
-		WHERE p.id = $1
-	`), c.Params("id"), middleware.UserID(c)).Scan(postScanArgs(&postagem)...)
+	err = h.DB.QueryRow(ctx, postSelectQuery("WHERE p.id = $1", ""), c.Params("id"), middleware.UserID(c)).Scan(postScanArgs(&postagem)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return httpx.NotFound("postagem nao encontrada")
 	}
@@ -146,9 +145,7 @@ func (h PostsController) Update(c *fiber.Ctx) error {
 	defer cancel()
 
 	var postagem models.Postagem
-	err := h.DB.QueryRow(ctx, postSelectQuery(`
-		WHERE p.id = $1 AND p.usuario_id = $3
-	`), c.Params("id"), middleware.UserID(c), middleware.UserID(c)).Scan(postScanArgs(&postagem)...)
+	err := h.DB.QueryRow(ctx, postSelectQuery("WHERE p.id = $1 AND p.usuario_id = $3", ""), c.Params("id"), middleware.UserID(c), middleware.UserID(c)).Scan(postScanArgs(&postagem)...)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return httpx.NotFound("postagem nao encontrada para este usuario")
 	}
@@ -209,7 +206,17 @@ func (h PostsController) Like(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 	defer cancel()
 
-	ok, err := repository.UsuarioPodeVerPostagem(ctx, h.DB, middleware.UserID(c), c.Params("id"))
+	postagemID, err := postagemIDParam(c)
+	if err != nil {
+		return err
+	}
+
+	grupoID, err := h.grupoIDDaPostagem(ctx, postagemID)
+	if err != nil {
+		return err
+	}
+
+	ok, err := repository.UsuarioNoGrupo(ctx, h.DB, middleware.UserID(c), grupoID)
 	if err != nil {
 		return err
 	}
@@ -220,7 +227,7 @@ func (h PostsController) Like(c *fiber.Ctx) error {
 	_, err = h.DB.Exec(ctx, `
 		INSERT INTO curtidas (usuario_id, postagem_id)
 		VALUES ($1, $2)
-	`, middleware.UserID(c), c.Params("id"))
+	`, middleware.UserID(c), postagemID)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -231,6 +238,32 @@ func (h PostsController) Like(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h PostsController) grupoIDDaPostagem(ctx context.Context, postagemID string) (string, error) {
+	var grupoID string
+	err := h.DB.QueryRow(ctx, `
+		SELECT grupo_id
+		FROM postagens
+		WHERE id = $1
+	`, postagemID).Scan(&grupoID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", httpx.NotFound("postagem nao encontrada")
+	}
+	if err != nil {
+		return "", err
+	}
+
+	return grupoID, nil
+}
+
+func postagemIDParam(c *fiber.Ctx) (string, error) {
+	postagemID := c.Params("id")
+	if _, err := uuid.Parse(postagemID); err != nil {
+		return "", httpx.BadRequest("id da postagem invalido")
+	}
+
+	return postagemID, nil
 }
 
 func (h PostsController) Unlike(c *fiber.Ctx) error {
@@ -251,8 +284,8 @@ func (h PostsController) Unlike(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-func (h PostsController) CreateComment(c *fiber.Ctx) error {
-	var body commentRequest
+func (h PostsController) CreateComentario(c *fiber.Ctx) error {
+	var body comentarioRequest
 	if err := c.BodyParser(&body); err != nil {
 		return httpx.BadRequest("json invalido")
 	}
@@ -293,7 +326,7 @@ func (h PostsController) CreateComment(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(comentario)
 }
 
-func (h PostsController) ListComments(c *fiber.Ctx) error {
+func (h PostsController) ListComentarios(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
 	defer cancel()
 
@@ -335,7 +368,7 @@ func (h PostsController) ListComments(c *fiber.Ctx) error {
 	return c.JSON(comentarios)
 }
 
-func postSelectQuery(where string) string {
+func postSelectQuery(where string, orderBy string) string {
 	return `
 		SELECT
 			p.id,
@@ -353,6 +386,7 @@ func postSelectQuery(where string) string {
 		LEFT JOIN comentarios c ON c.postagem_id = p.id
 		` + where + `
 		GROUP BY p.id
+		` + orderBy + `
 	`
 }
 

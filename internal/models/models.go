@@ -44,5 +44,4 @@ type Comentario struct {
 
 type AuthResponse struct {
 	Token   string  `json:"token"`
-	Usuario Usuario `json:"usuario"`
 }

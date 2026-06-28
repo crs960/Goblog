@@ -21,7 +21,7 @@ type AuthController struct {
 	JWTSecret string
 }
 
-type registerRequest struct {
+type cadastroRequest struct {
 	Nome  string `json:"nome"`
 	Email string `json:"email"`
 	Senha string `json:"senha"`
@@ -32,8 +32,8 @@ type loginRequest struct {
 	Senha string `json:"senha"`
 }
 
-func (h AuthController) Register(c *fiber.Ctx) error {
-	var body registerRequest
+func (h AuthController) Cadastro(c *fiber.Ctx) error {
+	var body cadastroRequest
 	if err := c.BodyParser(&body); err != nil {
 		return httpx.BadRequest("json invalido")
 	}
@@ -76,7 +76,6 @@ func (h AuthController) Register(c *fiber.Ctx) error {
 
 	return c.Status(fiber.StatusCreated).JSON(models.AuthResponse{
 		Token:   token,
-		Usuario: usuario,
 	})
 }
 
@@ -121,6 +120,5 @@ func (h AuthController) Login(c *fiber.Ctx) error {
 
 	return c.JSON(models.AuthResponse{
 		Token:   token,
-		Usuario: usuario,
 	})
 }
